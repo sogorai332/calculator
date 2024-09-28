@@ -5,63 +5,95 @@ import calculator.exception.OperationInvalidException;
 
 import java.math.BigDecimal;
 
-import static calculator.util.CalculatorUtils.convert;
+/**
+ * @author Soumo Gorai
+ * @see calculator.Calculator
+ */
+public class CalculatorImpl implements Calculator {
 
-public class CalculatorImpl<N extends Number> implements Calculator<N> {
-
-    private N value;
+    private BigDecimal value;
 
     public CalculatorImpl() throws NumberInvalidException {
-        this((N)BigDecimal.valueOf(0l));
+        this(null);
     }
 
-    public CalculatorImpl(N num) throws NumberInvalidException {
-        if(num == null) {
-            throw new NumberInvalidException(NumberInvalidException.INVALID_NUMBER);
+    public CalculatorImpl(Number num) throws NumberInvalidException {
+        if(null != num) {
+            this.value = new BigDecimal(num.toString());
         }
-        this.value = num;
-    }
-
-    public N calculate(Operation op, N num1, N num2) throws OperationInvalidException {
-        switch(op) {
-            case ADD:
-                return (N) convert(num1).add(convert(num2));
-            case SUBTRACT:
-                return (N) convert(num1).subtract(convert(num2));
-            case MULTIPLY:
-                return (N) convert(num1).multiply(convert(num2));
-            case DIVIDE:
-                return (N) convert(num1).divide(convert(num2));
-        }
-        throw new OperationInvalidException("Operation = " + op.toString() + " is not supported");
     }
 
     @Override
-    public Calculator add(N n) throws OperationInvalidException {
+    public BigDecimal calculate(Operation op, Number num1, Number num2) throws OperationInvalidException, NumberInvalidException {
+        return calculate(op, null, num1, num2);
+    }
+
+    @Override
+    public BigDecimal calculate(Operation op, Integer scale, Number num1, Number num2) throws OperationInvalidException, NumberInvalidException {
+        this.checkValue(num1);
+        this.checkValue(num2);
+
+        BigDecimal numA = new BigDecimal(num1.toString());
+        BigDecimal numB = new BigDecimal(num2.toString());
+        BigDecimal result = null;
+
+        switch(op) {
+            case ADD:
+            case SUBTRACT:
+            case MULTIPLY:
+                result = op.execute(scale, numA, numB);
+                break;
+            case DIVIDE:
+                if (BigDecimal.ZERO.equals(numB)) {
+                    throw new NumberInvalidException("Error. Please insert valid denominator.");
+                }
+                result = op.execute(scale, numA, numB);
+                break;
+            default:
+                throw new OperationInvalidException("Operation = " + op.toString() + " is not supported");
+        }
+       return new BigDecimal(result.stripTrailingZeros().toPlainString());
+
+    }
+
+    @Override
+    public Calculator add(Number n) throws OperationInvalidException, NumberInvalidException {
         this.value = calculate(Operation.ADD, this.value, n);
         return this;
     }
 
+    private void checkValue(Number value) throws NumberInvalidException {
+        if(null == value) {
+            throw new NumberInvalidException("value cannot be null. Please check constructor usage.");
+        }
+    }
+
     @Override
-    public Calculator subtract(N n) throws OperationInvalidException {
+    public Calculator subtract(Number n) throws OperationInvalidException, NumberInvalidException {
         this.value = calculate(Operation.SUBTRACT, this.value, n);
         return this;
     }
 
     @Override
-    public Calculator multiply(N n) throws OperationInvalidException {
+    public Calculator multiply(Number n) throws OperationInvalidException, NumberInvalidException {
         this.value = calculate(Operation.MULTIPLY, this.value, n);
         return this;
     }
 
     @Override
-    public Calculator divide(N n) throws OperationInvalidException {
+    public Calculator divide(Number n) throws OperationInvalidException, NumberInvalidException {
         this.value = calculate(Operation.DIVIDE, this.value, n);
         return this;
     }
 
     @Override
-    public N value() {
+    public Calculator divide(Number n, Integer scale) throws OperationInvalidException, NumberInvalidException {
+        this.value = calculate(Operation.DIVIDE, scale, this.value, n);
+        return this;
+    }
+
+    @Override
+    public BigDecimal value() {
         return this.value;
     }
 
